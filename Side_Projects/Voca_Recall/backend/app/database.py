@@ -43,7 +43,12 @@ def validate_notion_database(api_key, database_id):
         logger.info(f"Validating Notion database access for database {database_id}")
         
         notion = Client(auth=api_key)
-        database = notion.databases.retrieve(database_id)
+        # We try to validate using data_sources if available, or databases as fallback
+        try:
+            database = notion.data_sources.retrieve(database_id)
+        except Exception:
+            # Fallback to databases retrieve
+            database = notion.databases.retrieve(database_id)
         
         title = database.get('title', [{}])[0].get('plain_text', 'Untitled Database')
         logger.info(f"Successfully validated database: {title}")
@@ -86,28 +91,31 @@ def add_database():
                 return jsonify({'error': 'Token not found or inactive'}), 404
             api_key = notion_token.token
 
-        # Accept either explicit database_id or a URL containing it
-        provided_id = data.get('database_id')
+        # Accept either explicit data_source_id, database_id, or a URL
+        provided_id = data.get('data_source_id') or data.get('database_id')
         database_url = data.get('database_url')
 
-        # Keep URL required to satisfy current schema (database_url NOT NULL)
-        if not database_url and not provided_id:
-            return jsonify({'error': 'Provide a Database URL or Database ID'}), 400
+        # Keep URL optional now, favor ID
+        if not provided_id and not database_url:
+            return jsonify({'error': 'Provide a Data Source ID, Database ID, or URL'}), 400
 
-        database_id = extract_database_id(provided_id or database_url)
-        if not database_id:
-            return jsonify({'error': 'Could not extract a valid Database ID'}), 400
+        data_source_id = extract_database_id(provided_id or database_url)
+        if not data_source_id:
+            return jsonify({'error': 'Could not extract a valid ID'}), 400
 
         # Check if database already exists for this user
         existing_db = NotionDatabase.query.filter_by(
             user_id=current_user_id,
-            database_id=database_id
+            database_id=data_source_id  # Checking against legacy database_id field
+        ).first() or NotionDatabase.query.filter_by(
+            user_id=current_user_id,
+            data_source_id=data_source_id
         ).first()
         if existing_db:
-            return jsonify({'error': 'This database is already connected'}), 409
+            return jsonify({'error': 'This data source is already connected'}), 409
 
         # Validate access and get the actual database title using the token
-        is_valid, result = validate_notion_database(api_key, database_id)
+        is_valid, result = validate_notion_database(api_key, data_source_id)
         if not is_valid:
             return jsonify({'error': 'Failed to validate Notion database', 'details': result}), 400
         database_name = result or 'Untitled Database'
@@ -123,11 +131,12 @@ def add_database():
             db.session.flush()  # Get the token ID
 
         # Use provided URL if available, otherwise store a minimal URL-like reference
-        stored_url = database_url or f"https://www.notion.so/{database_id}"
+        stored_url = database_url or f"https://www.notion.so/{data_source_id}"
 
         notion_db = NotionDatabase(
             user_id=current_user_id,
-            database_id=database_id,
+            database_id=data_source_id, # Retaining in database_id for backward compatibility
+            data_source_id=data_source_id,
             database_name=database_name,
             database_url=stored_url,
             token_id=notion_token.id if notion_token else None
@@ -208,13 +217,13 @@ def update_database(database_pk):
             database.is_active = bool(data['is_active'])
 
         # If database_url is provided, re-extract ID and validate with token
-        if data.get('database_url') or data.get('database_id'):
+        if data.get('database_url') or data.get('database_id') or data.get('data_source_id'):
             # Get API key either from direct input or from stored token
             api_key = data.get('notion_api_key')
             token_id = data.get('token_id')
             
             if not api_key and not token_id:
-                return jsonify({'error': 'Integration Token or token_id is required when changing database'}), 400
+                return jsonify({'error': 'Integration Token or token_id is required when changing data source'}), 400
             
             # If token_id provided, fetch the token
             if token_id:
@@ -228,9 +237,9 @@ def update_database(database_pk):
                 api_key = notion_token.token
                 database.token_id = token_id
 
-            new_id = extract_database_id(data.get('database_id') or data.get('database_url'))
+            new_id = extract_database_id(data.get('data_source_id') or data.get('database_id') or data.get('database_url'))
             if not new_id:
-                return jsonify({'error': 'Could not extract a valid Database ID'}), 400
+                return jsonify({'error': 'Could not extract a valid Data Source ID'}), 400
 
             # Check duplicate for this user
             duplicate = NotionDatabase.query.filter(
@@ -244,9 +253,10 @@ def update_database(database_pk):
             # Validate access and get title
             is_valid, result = validate_notion_database(api_key, new_id)
             if not is_valid:
-                return jsonify({'error': 'Failed to validate Notion database', 'details': result}), 400
+                return jsonify({'error': 'Failed to validate Notion data source', 'details': result}), 400
 
             database.database_id = new_id
+            database.data_source_id = new_id
             database.database_name = result or 'Untitled Database'
             if data.get('database_url'):
                 database.database_url = data['database_url']

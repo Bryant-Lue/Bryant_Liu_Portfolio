@@ -140,9 +140,10 @@ class NotionDatabase(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     token_id = db.Column(db.Integer, db.ForeignKey('notion_tokens.id'), nullable=True)  # Link to stored token
-    database_id = db.Column(db.String(255), nullable=False)
+    database_id = db.Column(db.String(255), nullable=True)  # Legacy database ID, now optional
+    data_source_id = db.Column(db.String(255), nullable=True)  # New Notion data source ID
     database_name = db.Column(db.String(255), nullable=False)
-    database_url = db.Column(db.String(500), nullable=False)
+    database_url = db.Column(db.String(500), nullable=True)
     is_active = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -155,6 +156,7 @@ class NotionDatabase(db.Model):
         return {
             'id': self.id,
             'database_id': self.database_id,
+            'data_source_id': self.data_source_id,
             'database_name': self.database_name,
             'database_url': self.database_url,
             'is_active': self.is_active,

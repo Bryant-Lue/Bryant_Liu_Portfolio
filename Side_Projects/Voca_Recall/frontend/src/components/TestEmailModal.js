@@ -140,9 +140,9 @@ const TestEmailModal = ({ isOpen, onClose, databases }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Database Selection */}
+          {/* Data Source Selection */}
           <div>
-            <label className="form-label">Select Database *</label>
+            <label className="form-label">Select Data Source *</label>
             <select
               value={formData.database_id}
               onChange={(e) => setFormData({ ...formData, database_id: e.target.value })}

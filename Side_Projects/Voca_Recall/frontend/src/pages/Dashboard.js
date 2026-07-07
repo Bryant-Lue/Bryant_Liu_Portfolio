@@ -127,7 +127,7 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="ml-4">
-              <p className="text-sm font-medium text-gray-500">Connected Databases</p>
+              <p className="text-sm font-medium text-gray-500">Connected Data Sources</p>
               <p className="text-2xl font-semibold text-gray-900">
                 {stats?.databases_count || 0}
               </p>
@@ -188,14 +188,14 @@ const Dashboard = () => {
               Get Started with Voca Recaller
             </h3>
             <p className="text-gray-600 mb-6">
-              Connect your first Notion database to start receiving daily vocabulary emails.
+              Connect your first Notion data source to start receiving daily vocabulary emails.
             </p>
             <Link
               to="/databases"
               className="btn-primary inline-flex items-center"
             >
               <Plus className="h-4 w-4 mr-2" />
-              Add Your First Database
+              Add Your First Data Source
             </Link>
           </div>
         </div>

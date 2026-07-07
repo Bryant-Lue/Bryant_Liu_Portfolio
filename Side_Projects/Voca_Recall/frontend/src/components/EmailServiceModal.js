@@ -229,10 +229,10 @@ const EmailServiceModal = ({ isOpen, onClose, database, databases = null, servic
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Database Selection - only in create mode with multiple databases */}
+          {/* Data Source Selection - only in create mode with multiple data sources */}
           {!service && databases && databases.length > 0 && (
             <div>
-              <label className="form-label">Select Database *</label>
+              <label className="form-label">Select Data Source *</label>
               <select
                 value={selectedDatabaseId}
                 onChange={(e) => setSelectedDatabaseId(e.target.value)}

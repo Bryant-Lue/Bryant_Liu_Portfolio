@@ -127,7 +127,7 @@ const Databases = () => {
     try {
       // Build payload expected by backend
       const payload = {
-        database_url: data.database_url
+        data_source_id: data.data_source_id
       };
 
       // Add token info based on selection
@@ -191,7 +191,7 @@ const Databases = () => {
 
   const handleEdit = (database) => {
     setEditingDatabase(database);
-    setValue('database_url', database.database_url);
+    setValue('data_source_id', database.data_source_id || database.database_id || database.database_url);
     if (database.token_id) {
       setValue('token_id', database.token_id);
       setUseStoredToken(true);
@@ -237,7 +237,7 @@ const Databases = () => {
           className="btn-primary inline-flex items-center cursor-pointer"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Add Database
+          Add Data Source
         </button>
       </div>
 
@@ -352,37 +352,35 @@ const Databases = () => {
             </div>
 
             <div>
-              <label htmlFor="database_url" className="form-label">
-                Database URL or ID
+              <label htmlFor="data_source_id" className="form-label">
+                Data Source ID
               </label>
               <input
-                id="database_url"
+                id="data_source_id"
                 type="text"
                 className={`input-field ${
-                  errors.database_url ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
+                  errors.data_source_id ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : ''
                 }`}
-                placeholder="https://www.notion.so/... or a 32-char database ID"
-                {...register('database_url', {
-                  required: 'Database URL or ID is required',
+                placeholder="Enter a 32-character Notion Data Source ID"
+                {...register('data_source_id', {
+                  required: 'Data Source ID is required',
                   validate: (value) => {
-                    const urlRegex = /^https?:\/\/[^\s]+$/;
                     const idRegex = /^(?:[0-9a-fA-F]{32}|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
-                    return urlRegex.test(value) || idRegex.test(value) || 'Enter a Notion URL or database ID';
+                    return idRegex.test(value) || 'Enter a valid 32-character Data Source ID';
                   },
                 })}
               />
-              {errors.database_url && (
-                <p className="mt-1 text-sm text-red-600">{errors.database_url.message}</p>
+              {errors.data_source_id && (
+                <p className="mt-1 text-sm text-red-600">{errors.data_source_id.message}</p>
               )}
               <p className="mt-1 text-sm text-gray-500">
-                Paste the Notion database page URL (the ID is embedded) or the 32-character database ID.
-                Example: https://www.notion.so/workspace/<strong>xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</strong>
+                Paste the 32-character Notion data source ID.
               </p>
             </div>
 
             <div className="flex space-x-4">
               <button type="submit" className="btn-primary">
-                {editingDatabase ? 'Update Database' : 'Add Database'}
+                {editingDatabase ? 'Update Data Source' : 'Add Data Source'}
               </button>
               <button type="button" onClick={handleCancel} className="btn-secondary">
                 Cancel

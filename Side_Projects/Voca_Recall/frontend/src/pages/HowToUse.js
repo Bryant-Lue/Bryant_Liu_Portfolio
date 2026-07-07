@@ -49,17 +49,17 @@ const steps = [
   },
   {
     id: 2,
-    label: 'Share Database',
+    label: 'Share Data Source',
     icon: Database,
     iconBg: 'bg-purple-100',
     iconColor: 'text-purple-600',
-    title: 'Share a Notion Database with Your Integration',
-    summary: 'Grant your integration access to the vocabulary database you want to use.',
+    title: 'Share a Notion Data Source with Your Integration',
+    summary: 'Grant your integration access to the vocabulary data source you want to use.',
     details: (
       <ol className="list-decimal list-inside space-y-2 text-gray-600">
-        <li>Open the Notion database that contains your vocabulary.</li>
+        <li>Open the Notion data source that contains your vocabulary.</li>
         <li>
-          Click the <strong>•••</strong> menu at the top-right of the database page, then choose{' '}
+          Click the <strong>•••</strong> menu at the top-right of the page, then choose{' '}
           <strong>Add connections</strong>.
         </li>
         <li>Search for and select the integration you created in Step 1.</li>
@@ -68,7 +68,7 @@ const steps = [
           <Link to="/databases" className="text-primary-600 hover:underline">
             Databases
           </Link>{' '}
-          and add the database by pasting its URL or ID.
+          and add the data source by pasting its 32-character Data Source ID.
         </li>
       </ol>
     ),
@@ -90,7 +90,7 @@ const steps = [
           </Link>{' '}
           and click <strong>Add Service</strong>.
         </li>
-        <li>Select the database you added in Step 2.</li>
+        <li>Select the data source you added in Step 2.</li>
         <li>
           Choose the number of vocabulary words to include per email and set your preferred delivery
           time.
@@ -187,7 +187,7 @@ const HowToUse = () => {
         <h1 className="text-3xl font-bold text-gray-900">How to Use Voca Recaller</h1>
         <p className="mt-3 text-gray-500 max-w-xl mx-auto">
           Follow these four steps to start receiving daily vocabulary emails straight from your
-          Notion databases.
+          Notion data sources.
         </p>
       </div>
 

@@ -116,30 +116,35 @@ def send_email(to_email, subject, html_content, text_content=None):
         return False, str(e)
 
 @log_function_call("Notion vocabulary fetch")
-def get_vocabulary_from_notion(api_key, database_id, count=10, selection_method='random', date_range_start=None, date_range_end=None):
+def get_vocabulary_from_notion(api_key, database_id=None, count=10, selection_method='random', date_range_start=None, date_range_end=None, data_source_id=None):
     """
     Get vocabulary items from Notion database using specified selection method
     
     Args:
         api_key: Notion API key
-        database_id: Notion database ID
+        database_id: Notion database ID (legacy)
         count: Number of items to fetch
         selection_method: 'random', 'latest', or 'date_range'
         date_range_start: Start date for date_range method (datetime.date object)
         date_range_end: End date for date_range method (datetime.date object)
+        data_source_id: Notion data source ID
     """
+    from notion_client.helpers import collect_paginated_api
     try:
-        logger.info(f"Fetching {count} vocabulary items from Notion database {database_id} using {selection_method} method")
+        target_id = data_source_id or database_id
+        if data_source_id:
+            logger.info(f"Fetching {count} vocabulary items from Notion data source {target_id} using {selection_method} method")
+        else:
+            logger.info(f"Fetching {count} vocabulary items from Notion database {target_id} using {selection_method} method")
         
         notion = Client(auth=api_key)
         
         # Build query filters based on selection method
-        # Page size limited by Notion up to 100
-        # https://developers.notion.com/reference/intro#:~:text=Default%3A%20100-,Maximum%3A%20100,-The%20response%20may
-        query_params = {
-            'database_id': database_id,
-            'page_size': 100
-        }
+        query_params = {}
+        if data_source_id:
+            query_params['data_source_id'] = data_source_id
+        else:
+            query_params['database_id'] = database_id
         
         # For latest selection, sort by created time descending
         if selection_method == 'latest':
@@ -164,13 +169,20 @@ def get_vocabulary_from_notion(api_key, database_id, count=10, selection_method=
             elif len(filters) == 1:
                 query_params['filter'] = filters[0]
         
-        # Get items from database
-        response = notion.databases.query(**query_params)
-        
-        items = response.get('results', [])
+        # Get items from Notion using pagination helper to overcome 100-item limit
+        if data_source_id:
+            items = collect_paginated_api(
+                notion.data_sources.query,
+                **query_params
+            )
+        else:
+            items = collect_paginated_api(
+                notion.databases.query,
+                **query_params
+            )
         
         if not items:
-            logger.warning(f"No items found in Notion database {database_id}")
+            logger.warning(f"No items found in Notion target {target_id}")
             return []
         
         logger.info(f"Found {len(items)} total items in database")
@@ -254,7 +266,7 @@ def get_vocabulary_from_notion(api_key, database_id, count=10, selection_method=
         return vocabulary_items
         
     except Exception as e:
-        logger.error(f"Error fetching vocabulary from Notion database {database_id}: {str(e)}")
+        logger.error(f"Error fetching vocabulary from Notion target {data_source_id or database_id}: {str(e)}")
         return []
 
 def render_item_fields(
@@ -585,6 +597,7 @@ def send_test_email():
             
             api_key = token.token
             database_id = database.database_id
+            data_source_id = database.data_source_id
             
         # Support both new (database_pk) and legacy (notion_api_key + database_id) methods
         elif database_pk:
@@ -611,29 +624,33 @@ def send_test_email():
             
             api_key = token.token
             database_id = database.database_id
+            data_source_id = database.data_source_id
         else:
             # Legacy method: use provided API key and database ID
             api_key = data.get('notion_api_key')
             database_id = data.get('database_id')
+            data_source_id = data.get('data_source_id')
             
-            if not api_key or not database_id:
-                return jsonify({'error': 'Either service_id, database_pk, or (notion_api_key and database_id) are required'}), 400
+            if not api_key or (not database_id and not data_source_id):
+                return jsonify({'error': 'Either service_id, database_pk, or (notion_api_key and (database_id or data_source_id)) are required'}), 400
         
         # Get vocabulary items with selection method
         vocabulary_items = get_vocabulary_from_notion(
             api_key, 
-            database_id, 
-            vocabulary_count,
+            database_id=database_id, 
+            count=vocabulary_count,
             selection_method=selection_method,
             date_range_start=date_start,
-            date_range_end=date_end
+            date_range_end=date_end,
+            data_source_id=data_source_id
         )
         
         if not vocabulary_items:
             return jsonify({'error': 'No vocabulary items found in the database'}), 400
         
-        # Create Notion database URL
-        database_url = f"https://www.notion.so/{database_id.replace('-', '')}"
+        # Create Notion database URL (legacy behavior fallback)
+        target_id_for_url = data_source_id or database_id
+        database_url = f"https://www.notion.so/{target_id_for_url.replace('-', '')}" if target_id_for_url else ""
         
         # Create email content
         html_content = create_email_content(vocabulary_items, user.first_name, database_url, column_selection=column_selection, email_client=email_client)
@@ -745,7 +762,8 @@ def send_email_service_task(service_id):
                 count=service.vocabulary_count,
                 selection_method=service.selection_method,
                 date_range_start=service.date_range_start,
-                date_range_end=service.date_range_end
+                date_range_end=service.date_range_end,
+                data_source_id=database.data_source_id
             )
             
             if not vocabulary_items:
@@ -755,7 +773,8 @@ def send_email_service_task(service_id):
             logger.info(f"Retrieved {len(vocabulary_items)} vocabulary items for service {service_id}")
             
             # Create Notion database URL
-            database_url = f"https://www.notion.so/{database.database_id.replace('-', '')}"
+            target_id_for_url = database.data_source_id or database.database_id
+            database_url = f"https://www.notion.so/{target_id_for_url.replace('-', '')}" if target_id_for_url else ""
             
             # Create email content
             html_content = create_email_content(
