@@ -1,6 +1,6 @@
 # Bryant Liu (劉子揚) - Portfolio
 
-Welcome to my professional portfolio repository! I'm a passionate software engineer with expertise in **Data Science** and **Full-Stack Development**. This repository showcases my technical skills, academic projects, and side projects that demonstrate my ability to solve complex problems using modern technologies.
+Welcome to my personal portfolio repository! I'm a passionate software engineer with expertise in **Data Science** and **Full-Stack Development**. This repository showcases my technical skills, academic projects, and side projects that demonstrate my ability to solve complex problems using modern technologies.
 
 ## 🌟 Hottest Projects - My Best Work
 
